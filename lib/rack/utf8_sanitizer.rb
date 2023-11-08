@@ -159,10 +159,6 @@ module Rack
             force_encoding(Encoding::ASCII_8BIT))
       end
 
-      # This regexp matches all 'unreserved' characters from RFC3986 (2.3),
-      # plus all multibyte UTF-8 characters.
-      UNRESERVED_OR_UTF8 = /[A-Za-z0-9\-._~\x80-\xFF]/n
-
       # RFC3986, 2.2 states that the characters from 'reserved' group must be
       # protected during normalization (which is what UTF8Sanitizer does).
       #
@@ -172,8 +168,9 @@ module Rack
         input.gsub(/%([a-f\d]{2})/i) do |encoded|
           decoded = $1.hex.chr
 
-          decodable_regex = UNRESERVED_OR_UTF8
-          if decoded =~ decodable_regex
+          # This regexp matches all 'unreserved' characters from RFC3986 (2.3),
+          # plus all multibyte UTF-8 characters.
+          if decoded.match?(/[A-Za-z0-9\-._~\x80-\xFF]/n)
             decoded
           else
             encoded
