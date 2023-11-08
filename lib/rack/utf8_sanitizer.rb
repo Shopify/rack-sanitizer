@@ -70,13 +70,19 @@ module Rack
       sanitize_cookies(env)
       env.each do |key, value|
         if URI_FIELDS.include?(key)
-          env[key] = transfer_frozen(value,
-              sanitize_uri_encoded_string(value))
+          if value.frozen?
+            env[key] = sanitize_uri_encoded_string(value.dup).freeze
+          else
+            env[key] = sanitize_uri_encoded_string(value)
+          end
         elsif key.to_s.start_with?("HTTP_")
           # Just sanitize the headers and leave them in UTF-8. There is
           # no reason to have UTF-8 in headers, but if it's valid, let it be.
-          env[key] = transfer_frozen(value,
-              sanitize_string(value))
+          if value.frozen?
+            env[key] = sanitize_string(value.dup).freeze
+          else
+            env[key] = sanitize_string(value)
+          end
         end
       end
     end
@@ -191,7 +197,7 @@ module Rack
 
       def sanitize_string(input)
         if input.is_a? String
-          input = input.dup.force_encoding(Encoding::UTF_8)
+          input = input.force_encoding(Encoding::UTF_8)
 
           if input.valid_encoding?
             input
@@ -200,14 +206,6 @@ module Rack
           end
         else
           input
-        end
-      end
-
-      def transfer_frozen(from, to)
-        if from.frozen?
-          to.freeze
-        else
-          to
         end
       end
     end
