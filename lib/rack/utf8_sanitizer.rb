@@ -5,6 +5,8 @@ require "stringio"
 
 module Rack
   class UTF8Sanitizer
+    BAD_REQUEST = [400, { "Content-Type" => "text/plain" }, ["Bad Request"]]
+
     # options[:sanitizable_content_types] Array
     # options[:additional_content_types] Array
     def initialize(app, options={})
@@ -16,7 +18,11 @@ module Rack
 
     def call(env)
       env = sanitize(env)
-      @app.call(env)
+      begin
+        @app.call(env)
+      rescue SanitizedRackInput::FailedToReadBody
+        return BAD_REQUEST
+      end
     end
 
     DEFAULT_STRATEGIES = {
@@ -201,6 +207,8 @@ module Rack
     include Sanitizers
 
     class SanitizedRackInput
+      FailedToReadBody = Class.new(Exception)
+
       include Sanitizers
 
       def initialize(original_io, env, uri_encoded, strategy)
@@ -257,6 +265,8 @@ module Rack
           @env['CONTENT_LENGTH'] &&= input.bytesize.to_s
           StringIO.new(input)
         end
+      rescue ::EOFError => error
+        raise FailedToReadBody, error.message
       end
     end
   end

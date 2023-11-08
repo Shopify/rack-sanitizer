@@ -6,7 +6,7 @@ require 'rack/utf8_sanitizer'
 
 describe Rack::UTF8Sanitizer do
   before do
-    @app = Rack::UTF8Sanitizer.new(-> env { env })
+    @app = Rack::UTF8Sanitizer.new(-> env { env["rack.input"]&.size; env })
   end
 
   shared :does_sanitize_plain do
@@ -205,6 +205,18 @@ describe Rack::UTF8Sanitizer do
       behaves_like :identity_plain
       behaves_like :identity_uri
       @response_env['rack.input'].close
+    end
+
+    class BrokenIO < StringIO
+      def read(_length = nil)
+        raise EOFError
+      end
+    end
+
+    it "returns HTTP 400 on EOF" do
+      @rack_input = BrokenIO.new
+      @response_env = @app.(request_env)
+      @response_env.should == [400, {"Content-Type"=>"text/plain"}, ["Bad Request"]]
     end
 
     it "sanitizes StringIO rack.input" do
