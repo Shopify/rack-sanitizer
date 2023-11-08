@@ -178,18 +178,16 @@ module Rack
         end
       end
 
-      # This regexp matches unsafe characters, i.e. everything except 'reserved'
-      # and 'unreserved' characters from RFC3986 (2.3), and additionally '%',
-      # as percent-encoded unreserved characters could be left over from the
-      # `unescape_unreserved` invocation.
-      #
-      # See also URI::REGEXP::PATTERN::{UNRESERVED,RESERVED}.
-      UNSAFE           = /[^\-_.!~*'()a-zA-Z\d;\/?:@&=+$,\[\]%]/
-
       # Performs the reverse function of `unescape_unreserved`. Unlike
       # the previous function, we can reuse the logic in URI#encode
       def escape_unreserved(input)
-        URI::DEFAULT_PARSER.escape(input, UNSAFE)
+        # This regexp matches unsafe characters, i.e. everything except 'reserved'
+        # and 'unreserved' characters from RFC3986 (2.3), and additionally '%',
+        # as percent-encoded unreserved characters could be left over from the
+        # `unescape_unreserved` invocation.
+        #
+        # See also URI::REGEXP::PATTERN::{UNRESERVED,RESERVED}.
+        URI::DEFAULT_PARSER.escape(input, /[^\-_.!~*'()a-zA-Z\d;\/?:@&=+$,\[\]%]/)
       end
 
       def sanitize_string(input)
