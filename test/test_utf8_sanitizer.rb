@@ -315,6 +315,17 @@ describe Rack::UTF8Sanitizer do
       end
     end
 
+    it "adjusts content-length when replacing input" do
+      input =  "foo=bla&quux=bar\xED"
+      @rack_input = StringIO.new input
+
+      env = request_env.update("CONTENT_LENGTH" => input.bytesize)
+      sanitize_form_data(env) do |sanitized_input|
+        sanitized_input.bytesize.should != input.bytesize
+        @response_env["CONTENT_LENGTH"].should == sanitized_input.bytesize.to_s
+      end
+    end
+
     it "does not sanitize null bytes by default" do
       input =  "foo=bla&quux=bar%00"
       @rack_input = StringIO.new input

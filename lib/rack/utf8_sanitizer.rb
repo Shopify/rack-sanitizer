@@ -103,7 +103,7 @@ module Rack
       if env['rack.input']
         env['rack.input'] = SanitizedRackInput.new(
           env['rack.input'],
-          env['CONTENT_LENGTH']&.to_i,
+          env,
           uri_encoded,
           @strategy
         )
@@ -203,10 +203,10 @@ module Rack
     class SanitizedRackInput
       include Sanitizers
 
-      def initialize(original_io, content_length, uri_encoded, strategy)
+      def initialize(original_io, env, uri_encoded, strategy)
         @original_io = original_io
         @uri_encoded = uri_encoded
-        @content_length = content_length
+        @env = env
         @strategy = strategy
         @sanitized_io = nil
       end
@@ -244,7 +244,8 @@ module Rack
 
       def sanitized_io
         @sanitized_io ||= begin
-          input = @content_length ? @original_io.read(@content_length) : @original_io.read
+          content_length = @env['CONTENT_LENGTH']&.to_i
+          input = content_length ? @original_io.read(content_length) : @original_io.read
           if input.start_with?(UTF8_BOM)
             input = input.byteslice(UTF8_BOM_SIZE..-1)
           end
@@ -253,6 +254,7 @@ module Rack
           if @uri_encoded
             input = sanitize_uri_encoded_string(input).force_encoding(Encoding::UTF_8)
           end
+          @env['CONTENT_LENGTH'] &&= input.bytesize.to_s
           StringIO.new(input)
         end
       end
