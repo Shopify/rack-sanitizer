@@ -210,14 +210,6 @@ module Rack
           to
         end
       end
-
-      UTF8_BOM = "\xef\xbb\xbf".b.freeze
-      UTF8_BOM_SIZE = UTF8_BOM.bytesize
-
-      def strip_byte_order_mark(input)
-        return input unless input.start_with?(UTF8_BOM)
-        input.byteslice(UTF8_BOM_SIZE..-1)
-      end
     end
 
     include Sanitizers
@@ -261,16 +253,21 @@ module Rack
 
       private
 
+      UTF8_BOM = "\xef\xbb\xbf".b.freeze
+      UTF8_BOM_SIZE = UTF8_BOM.bytesize
+
       def sanitized_io
         @sanitized_io ||= begin
           input = @content_length ? @original_io.read(@content_length) : @original_io.read
-          sanitized_input = sanitize_string(strip_byte_order_mark(input))
-          if @uri_encoded
-            sanitized_input = sanitize_uri_encoded_string(sanitized_input).
-              force_encoding(Encoding::UTF_8)
+          if input.start_with?(UTF8_BOM)
+            input = input.byteslice(UTF8_BOM_SIZE..-1)
           end
-          sanitized_input = transfer_frozen(input, sanitized_input)
-          StringIO.new(sanitized_input)
+
+          input = sanitize_string(input)
+          if @uri_encoded
+            input = sanitize_uri_encoded_string(input).force_encoding(Encoding::UTF_8)
+          end
+          StringIO.new(input)
         end
       end
     end
