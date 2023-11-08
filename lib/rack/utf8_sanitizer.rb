@@ -7,9 +7,6 @@ module Rack
   class UTF8Sanitizer
     StringIO = ::StringIO
     BAD_REQUEST = [400, { "Content-Type" => "text/plain" }, ["Bad Request"]]
-    NULL_BYTE = "\x00".b.freeze
-
-    class NullByteInString < StandardError; end
 
     # options[:sanitizable_content_types] Array
     # options[:additional_content_types] Array
@@ -20,7 +17,6 @@ module Rack
       @sanitizable_content_types ||= SANITIZABLE_CONTENT_TYPES + (options[:additional_content_types] || [])
       @only = Array(options[:only]).flatten
       @except = Array(options[:except]).flatten
-      @sanitize_null_bytes = options.fetch(:sanitize_null_bytes, false)
     end
 
     def call(env)
@@ -33,24 +29,18 @@ module Rack
     end
 
     DEFAULT_STRATEGIES = {
-      replace: lambda do |input, sanitize_null_bytes: false|
+      replace: lambda do |input|
         input.
           force_encoding(Encoding::ASCII_8BIT).
           encode!(Encoding::UTF_8,
                   invalid: :replace,
                   undef:   :replace)
-        if sanitize_null_bytes
-          input = input.tr!(NULL_BYTE, "")
-        end
         input
       end,
-      exception: lambda do |input, sanitize_null_bytes: false|
+      exception: lambda do |input|
         input.
           force_encoding(Encoding::ASCII_8BIT).
           encode!(Encoding::UTF_8)
-        if sanitize_null_bytes && input.include?(NULL_BYTE)
-          raise NullByteInString
-        end
         input
       end
     }.freeze
@@ -227,7 +217,6 @@ module Rack
     # This regexp matches all 'unreserved' characters from RFC3986 (2.3),
     # plus all multibyte UTF-8 characters.
     UNRESERVED_OR_UTF8 = /[A-Za-z0-9\-._~\x80-\xFF]/.freeze
-    UNRESERVED_OR_UTF8_OR_NULL = /[A-Za-z0-9\-._~\x00\x80-\xFF]/.freeze
 
     # RFC3986, 2.2 states that the characters from 'reserved' group must be
     # protected during normalization (which is what UTF8Sanitizer does).
@@ -238,7 +227,7 @@ module Rack
       input.gsub(/%([a-f\d]{2})/i) do |encoded|
         decoded = $1.hex.chr
 
-        decodable_regex = @sanitize_null_bytes ? UNRESERVED_OR_UTF8_OR_NULL : UNRESERVED_OR_UTF8
+        decodable_regex = UNRESERVED_OR_UTF8
         if decoded =~ decodable_regex
           decoded
         else
@@ -265,10 +254,10 @@ module Rack
       if input.is_a? String
         input = input.dup.force_encoding(Encoding::UTF_8)
 
-        if input.valid_encoding? && !(@sanitize_null_bytes && input.include?(NULL_BYTE))
+        if input.valid_encoding?
           input
         else
-          @strategy.call(input, sanitize_null_bytes: @sanitize_null_bytes)
+          @strategy.call(input)
         end
       else
         input
