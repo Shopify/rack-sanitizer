@@ -7,7 +7,7 @@ module Rack
   class UTF8Sanitizer
     StringIO = ::StringIO
     BAD_REQUEST = [400, { "Content-Type" => "text/plain" }, ["Bad Request"]]
-    NULL_BYTE_REGEX = /\x00/.freeze
+    NULL_BYTE = "\x00".b.freeze
 
     class NullByteInString < StandardError; end
 
@@ -40,7 +40,7 @@ module Rack
                   invalid: :replace,
                   undef:   :replace)
         if sanitize_null_bytes
-          input = input.gsub(NULL_BYTE_REGEX, "")
+          input = input.tr!(NULL_BYTE, "")
         end
         input
       end,
@@ -48,7 +48,7 @@ module Rack
         input.
           force_encoding(Encoding::ASCII_8BIT).
           encode!(Encoding::UTF_8)
-        if sanitize_null_bytes && input =~ NULL_BYTE_REGEX
+        if sanitize_null_bytes && input.include?(NULL_BYTE)
           raise NullByteInString
         end
         input
@@ -121,8 +121,8 @@ module Rack
       content_type   = env['CONTENT_TYPE']
       content_type &&= content_type.split(/\s*[;,]\s*/, 2).first
       content_type &&= content_type.downcase
-      return unless @sanitizable_content_types.any? {|type| content_type == type }
-      uri_encoded = URI_ENCODED_CONTENT_TYPES.any? {|type| content_type == type}
+      return unless @sanitizable_content_types.include?(content_type)
+      uri_encoded = URI_ENCODED_CONTENT_TYPES.include?(content_type)
 
       if env['rack.input']
         content_length = if env['CONTENT_LENGTH']
@@ -265,7 +265,7 @@ module Rack
       if input.is_a? String
         input = input.dup.force_encoding(Encoding::UTF_8)
 
-        if input.valid_encoding? && !(@sanitize_null_bytes && input =~ NULL_BYTE_REGEX)
+        if input.valid_encoding? && !(@sanitize_null_bytes && input.include?(NULL_BYTE))
           input
         else
           @strategy.call(input, sanitize_null_bytes: @sanitize_null_bytes)
@@ -283,7 +283,7 @@ module Rack
       end
     end
 
-    UTF8_BOM = "\xef\xbb\xbf".force_encoding(Encoding::BINARY).freeze
+    UTF8_BOM = "\xef\xbb\xbf".b.freeze
     UTF8_BOM_SIZE = UTF8_BOM.bytesize
 
     def strip_byte_order_mark(input)
