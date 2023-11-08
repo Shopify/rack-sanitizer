@@ -1,7 +1,7 @@
-# encoding: ascii-8bit
+# frozen_string_literal: true
 
-require 'uri'
-require 'stringio'
+require "uri"
+require "stringio"
 
 module Rack
   class UTF8Sanitizer
@@ -54,20 +54,18 @@ module Rack
         ORIGINAL_FULLPATH
         ORIGINAL_SCRIPT_NAME
         SERVER_NAME
-    ).map(&:freeze).freeze
+    ).freeze
 
     SANITIZABLE_CONTENT_TYPES = %w(
       text/plain
       application/x-www-form-urlencoded
       application/json
       text/javascript
-    ).map(&:freeze).freeze
+    ).freeze
 
     URI_ENCODED_CONTENT_TYPES = %w(
       application/x-www-form-urlencoded
-    ).map(&:freeze).freeze
-
-    HTTP_ = 'HTTP_'.freeze
+    ).freeze
 
     def sanitize(env)
       sanitize_rack_input(env)
@@ -78,7 +76,7 @@ module Rack
         if URI_FIELDS.include?(key)
           env[key] = transfer_frozen(value,
               sanitize_uri_encoded_string(value))
-        elsif key.to_s.start_with?(HTTP_)
+        elsif key.to_s.start_with?("HTTP_")
           # Just sanitize the headers and leave them in UTF-8. There is
           # no reason to have UTF-8 in headers, but if it's valid, let it be.
           env[key] = transfer_frozen(value,
@@ -216,7 +214,7 @@ module Rack
 
     # This regexp matches all 'unreserved' characters from RFC3986 (2.3),
     # plus all multibyte UTF-8 characters.
-    UNRESERVED_OR_UTF8 = /[A-Za-z0-9\-._~\x80-\xFF]/.freeze
+    UNRESERVED_OR_UTF8 = /[A-Za-z0-9\-._~\x80-\xFF]/n
 
     # RFC3986, 2.2 states that the characters from 'reserved' group must be
     # protected during normalization (which is what UTF8Sanitizer does).
