@@ -253,7 +253,7 @@ module Rack
       def sanitized_io
         @sanitized_io ||= begin
           content_length = @env['CONTENT_LENGTH']&.to_i
-          input = content_length ? @original_io.read(content_length) : @original_io.read
+          input = content_length && content_length >= 0 ? @original_io.read(content_length) : @original_io.read
           if input.start_with?(UTF8_BOM)
             input = input.byteslice(UTF8_BOM_SIZE..-1)
           end
