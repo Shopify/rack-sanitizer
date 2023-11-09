@@ -1,15 +1,15 @@
 # -*- encoding: utf-8 -*-
 
 Gem::Specification.new do |gem|
-  gem.name          = "rack-utf8_sanitizer"
-  gem.version       = '1.9.1'
-  gem.authors       = ["whitequark"]
+  gem.name          = "rack-sanitizer"
+  gem.version       = '2.0.0'
+  gem.authors       = ["Jean Boussier", "whitequark"]
   gem.license       = "MIT"
-  gem.email         = ["whitequark@whitequark.org"]
-  gem.description   = %{Rack::UTF8Sanitizer is a Rack middleware which cleans up } <<
+  gem.email         = ["jean.boussier@gmail.org"]
+  gem.description   = %{Rack::Sanitizer is a Rack middleware which cleans up } <<
                       %{invalid UTF8 characters in request URI and headers.}
-  gem.summary       = gem.description
-  gem.homepage      = "http://github.com/whitequark/rack-utf8_sanitizer"
+  gem.summary       = "It is a mordernized and optimized fork of rack-utf8_sanitizer"
+  gem.homepage      = "http://github.com/Shopify/rack-sanitizer"
 
   gem.files         = `git ls-files`.split($/)
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})

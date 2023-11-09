@@ -4,7 +4,7 @@ require "uri"
 require "stringio"
 
 module Rack
-  class UTF8Sanitizer
+  class Sanitizer
     BAD_REQUEST = [400, { "Content-Type" => "text/plain" }, ["Bad Request"]]
 
     # options[:sanitizable_content_types] Array
@@ -159,7 +159,7 @@ module Rack
       end
 
       # RFC3986, 2.2 states that the characters from 'reserved' group must be
-      # protected during normalization (which is what UTF8Sanitizer does).
+      # protected during normalization (which is what Rack::Sanitizer does).
       #
       # However, the regexp approach used by URI.unescape is not sophisticated
       # enough for our task.

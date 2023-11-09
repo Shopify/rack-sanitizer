@@ -1,4 +1,4 @@
 source 'https://rubygems.org'
 
-# Specify your gem's dependencies in rack-utf8_sanitizer.gemspec
+# Specify your gem's dependencies in rack-sanitizer.gemspec
 gemspec

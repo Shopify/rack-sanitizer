@@ -2,11 +2,11 @@
 
 require 'bacon/colored_output'
 require 'cgi'
-require 'rack/utf8_sanitizer'
+require 'rack/sanitizer'
 
-describe Rack::UTF8Sanitizer do
+describe Rack::Sanitizer do
   before do
-    @app = Rack::UTF8Sanitizer.new(-> env { env["rack.input"]&.size; env })
+    @app = Rack::Sanitizer.new(-> env { env["rack.input"]&.size; env })
   end
 
   shared :does_sanitize_plain do
@@ -410,7 +410,7 @@ describe Rack::UTF8Sanitizer do
     end
 
     it "sanitizes custom content-type if additional_content_types given" do
-      @app = Rack::UTF8Sanitizer.new(-> env { env }, additional_content_types: ["application/vnd.api+json"])
+      @app = Rack::Sanitizer.new(-> env { env }, additional_content_types: ["application/vnd.api+json"])
       input =  "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
@@ -423,7 +423,7 @@ describe Rack::UTF8Sanitizer do
     end
 
     it "sanitizes default content-type if additional_content_types given" do
-      @app = Rack::UTF8Sanitizer.new(-> env { env }, additional_content_types: ["application/vnd.api+json"])
+      @app = Rack::Sanitizer.new(-> env { env }, additional_content_types: ["application/vnd.api+json"])
       input =  "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
@@ -436,7 +436,7 @@ describe Rack::UTF8Sanitizer do
     end
 
     it "sanitizes custom content-type if sanitizable_content_types given" do
-      @app = Rack::UTF8Sanitizer.new(-> env { env }, sanitizable_content_types: ["application/vnd.api+json"])
+      @app = Rack::Sanitizer.new(-> env { env }, sanitizable_content_types: ["application/vnd.api+json"])
       input =  "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
@@ -449,7 +449,7 @@ describe Rack::UTF8Sanitizer do
     end
 
     it "does not sanitize default content-type if sanitizable_content_types does not include it" do
-      @app = Rack::UTF8Sanitizer.new(-> env { env }, sanitizable_content_types: ["application/vnd.api+json"])
+      @app = Rack::Sanitizer.new(-> env { env }, sanitizable_content_types: ["application/vnd.api+json"])
       input =  "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
@@ -482,7 +482,7 @@ describe Rack::UTF8Sanitizer do
     end
 
     it "calls a default strategy (replace)" do
-      @app = Rack::UTF8Sanitizer.new(-> env { env })
+      @app = Rack::Sanitizer.new(-> env { env })
 
       input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
@@ -496,7 +496,7 @@ describe Rack::UTF8Sanitizer do
     end
 
     it "calls the exception strategy" do
-      @app = Rack::UTF8Sanitizer.new(-> env { env }, strategy: :exception)
+      @app = Rack::Sanitizer.new(-> env { env }, strategy: :exception)
 
       input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
@@ -510,7 +510,7 @@ describe Rack::UTF8Sanitizer do
         'replace'.force_encoding(Encoding::UTF_8)
       end
 
-      @app = Rack::UTF8Sanitizer.new(-> env { env }, strategy: truncate)
+      @app = Rack::Sanitizer.new(-> env { env }, strategy: truncate)
 
       input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
