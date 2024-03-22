@@ -1,0 +1,26 @@
+PATH
+  remote: .
+  specs:
+    rack-sanitizer (2.0.1)
+      rack (>= 1.0, < 4.0)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    bacon (1.2.0)
+    bacon-colored_output (1.1.1)
+      bacon
+    rack (3.0.10)
+    rake (13.1.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  bacon
+  bacon-colored_output
+  rack-sanitizer!
+  rake
+
+BUNDLED WITH
+   2.5.7
