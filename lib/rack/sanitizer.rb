@@ -5,8 +5,6 @@ require "stringio"
 
 module Rack
   class Sanitizer
-    BAD_REQUEST = [400, { "Content-Type" => "text/plain" }, ["Bad Request"]]
-
     # options[:sanitizable_content_types] Array
     # options[:additional_content_types] Array
     def initialize(app, options={})
@@ -21,7 +19,7 @@ module Rack
       begin
         @app.call(env)
       rescue SanitizedRackInput::FailedToReadBody
-        return BAD_REQUEST
+        return [400, { "Content-Type" => "text/plain" }, ["Bad Request"]]
       end
     end
 
