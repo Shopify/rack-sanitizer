@@ -180,6 +180,8 @@ module Rack
         end
       end
 
+      URI_PARSER = defined?(URI::RFC2396_PARSER) ? URI::RFC2396_PARSER : URI::RFC2396_Parser.new
+
       # Performs the reverse function of `unescape_unreserved`. Unlike
       # the previous function, we can reuse the logic in URI#encode
       def escape_unreserved(input)
@@ -189,7 +191,7 @@ module Rack
         # `unescape_unreserved` invocation.
         #
         # See also URI::REGEXP::PATTERN::{UNRESERVED,RESERVED}.
-        URI::DEFAULT_PARSER.escape(input, /[^\-_.!~*'()a-zA-Z\d;\/?:@&=+$,\[\]%]/)
+        URI_PARSER.escape(input, /[^\-_.!~*'()a-zA-Z\d;\/?:@&=+$,\[\]%]/)
       end
 
       def sanitize_string(input)
