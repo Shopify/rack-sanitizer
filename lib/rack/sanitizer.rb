@@ -194,7 +194,9 @@ module Rack
         URI_PARSER.escape(input, /[^\-_.!~*'()a-zA-Z\d;\/?:@&=+$,\[\]%]/)
       end
 
-      def sanitize_string(input)
+      def sanitize_string(original_input)
+        input = original_input.dup
+
         if input.is_a? String
           input = input.force_encoding(Encoding::UTF_8)
 
