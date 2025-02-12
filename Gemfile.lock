@@ -10,7 +10,7 @@ GEM
     bacon (1.2.0)
     bacon-colored_output (1.1.1)
       bacon
-    rack (3.0.10)
+    rack (3.0.12)
     rake (13.1.0)
 
 PLATFORMS
