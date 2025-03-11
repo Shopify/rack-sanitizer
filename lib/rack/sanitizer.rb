@@ -196,7 +196,11 @@ module Rack
 
       def sanitize_string(input)
         if input.is_a? String
-          input = input.force_encoding(Encoding::UTF_8)
+          # Handle chilled strings
+          # Rack values aren't supposed to be frozen, but it's common in test suites.
+          input = +input
+
+          input.force_encoding(Encoding::UTF_8)
 
           if input.valid_encoding?
             input
