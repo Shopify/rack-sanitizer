@@ -6,7 +6,7 @@ Gem::Specification.new do |gem|
   gem.authors       = ["Jean Boussier", "whitequark"]
   gem.license       = "MIT"
   gem.email         = ["jean.boussier@gmail.org"]
-  gem.description   = %{Rack::Sanitizer is a Rack middleware which cleans up } <<
+  gem.description   = %{Rack::Sanitizer is a Rack middleware which cleans up } +
                       %{invalid UTF8 characters in request URI and headers.}
   gem.summary       = "It is a mordernized and optimized fork of rack-utf8_sanitizer"
   gem.homepage      = "http://github.com/Shopify/rack-sanitizer"

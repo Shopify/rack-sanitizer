@@ -4,5 +4,5 @@ task :default => :spec
 
 desc "Run tests"
 task :spec do
-  sh 'bacon -a'
+  sh 'bin/bacon -a'
 end

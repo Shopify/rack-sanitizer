@@ -1,6 +1,5 @@
 # encoding:ascii-8bit
 
-require 'bacon/colored_output'
 require 'cgi'
 require 'rack/sanitizer'
 
@@ -31,7 +30,7 @@ describe Rack::Sanitizer do
 
   describe "with invalid host input" do
     it "sanitizes host entity (SERVER_NAME)" do
-      host   = "host\xD0".force_encoding('UTF-8')
+      host   = "host\xD0".dup.force_encoding(Encoding::UTF_8)
       env    = @app.({ "SERVER_NAME" => host })
       result = env["SERVER_NAME"]
 
@@ -42,8 +41,8 @@ describe Rack::Sanitizer do
 
   describe "with invalid UTF-8 input" do
     before do
-      @plain_input = "foo\xe0".force_encoding('UTF-8')
-      @uri_input   = "http://bar/foo%E0".force_encoding('UTF-8')
+      @plain_input = "foo\xe0".dup.force_encoding(Encoding::UTF_8)
+      @uri_input   = "http://bar/foo%E0".dup.force_encoding(Encoding::UTF_8)
     end
 
     behaves_like :does_sanitize_plain
@@ -52,7 +51,7 @@ describe Rack::Sanitizer do
 
   describe "with invalid, incorrectly percent-encoded UTF-8 URI input" do
     before do
-      @uri_input   = "http://bar/foo%E0\xe0".force_encoding('UTF-8')
+      @uri_input   = "http://bar/foo%E0\xe0".dup.force_encoding(Encoding::UTF_8)
     end
 
     behaves_like :does_sanitize_uri
@@ -100,8 +99,8 @@ describe Rack::Sanitizer do
 
   describe "with valid UTF-8 input" do
     before do
-      @plain_input = "foo bar лол".force_encoding('UTF-8')
-      @uri_input   = "http://bar/foo+bar+%D0%BB%D0%BE%D0%BB".force_encoding('UTF-8')
+      @plain_input = "foo bar лол".dup.force_encoding(Encoding::UTF_8)
+      @uri_input   = "http://bar/foo+bar+%D0%BB%D0%BE%D0%BB".dup.force_encoding(Encoding::UTF_8)
     end
 
     behaves_like :identity_plain
@@ -109,7 +108,7 @@ describe Rack::Sanitizer do
 
     describe "with URI characters from reserved range" do
       before do
-        @uri_input   = "http://bar/foo+%2F%3A+bar+%D0%BB%D0%BE%D0%BB".force_encoding('UTF-8')
+        @uri_input   = "http://bar/foo+%2F%3A+bar+%D0%BB%D0%BE%D0%BB".dup.force_encoding(Encoding::UTF_8)
       end
 
       behaves_like :identity_uri
@@ -118,7 +117,7 @@ describe Rack::Sanitizer do
 
   describe "with valid, not percent-encoded UTF-8 URI input" do
     before do
-      @uri_input   = "http://bar/foo+bar+лол".force_encoding('UTF-8')
+      @uri_input   = "http://bar/foo+bar+лол".dup.force_encoding(Encoding::UTF_8)
       @encoded     = "http://bar/foo+bar+#{CGI.escape("лол")}"
     end
 
@@ -167,7 +166,7 @@ describe Rack::Sanitizer do
 
   describe "with symbols in the env" do
     before do
-      @uri_input = "http://bar/foo%E0\xe0".force_encoding('UTF-8')
+      @uri_input = "http://bar/foo%E0\xe0".dup.force_encoding(Encoding::UTF_8)
     end
 
     it "sanitizes REQUEST_PATH with invalid UTF-8 URI input" do
@@ -183,7 +182,7 @@ describe Rack::Sanitizer do
 
   describe "with form data" do
     def request_env
-      @plain_input = "foo bar лол".force_encoding('UTF-8')
+      @plain_input = "foo bar лол".dup.force_encoding(Encoding::UTF_8)
       {
          "REQUEST_METHOD" => "POST",
          "CONTENT_TYPE" => "application/x-www-form-urlencoded;foo=bar",
@@ -193,7 +192,7 @@ describe Rack::Sanitizer do
     end
 
     def sanitize_form_data(request_env = request_env())
-      @uri_input = "http://bar/foo+%2F%3A+bar+%D0%BB%D0%BE%D0%BB".force_encoding('UTF-8')
+      @uri_input = "http://bar/foo+%2F%3A+bar+%D0%BB%D0%BE%D0%BB".dup.force_encoding(Encoding::UTF_8)
       @response_env = @app.(request_env)
       sanitized_input = @response_env['rack.input'].read
 
@@ -380,7 +379,7 @@ describe Rack::Sanitizer do
 
   describe "with custom content-type" do
     def request_env
-      @plain_input = "foo bar лол".force_encoding('UTF-8')
+      @plain_input = "foo bar лол".dup.force_encoding(Encoding::UTF_8)
       {
           "REQUEST_METHOD" => "POST",
           "CONTENT_TYPE" => "application/vnd.api+json",
@@ -390,7 +389,7 @@ describe Rack::Sanitizer do
     end
 
     def sanitize_data(request_env = request_env())
-      @uri_input = "http://bar/foo+%2F%3A+bar+%D0%BB%D0%BE%D0%BB".force_encoding('UTF-8')
+      @uri_input = "http://bar/foo+%2F%3A+bar+%D0%BB%D0%BE%D0%BB".dup.force_encoding(Encoding::UTF_8)
       @response_env = @app.(request_env)
       sanitized_input = @response_env['rack.input'].read
 
@@ -464,7 +463,7 @@ describe Rack::Sanitizer do
 
   describe "with custom strategy" do
     def request_env
-      @plain_input = "foo bar лол".force_encoding('UTF-8')
+      @plain_input = "foo bar лол".dup.force_encoding(Encoding::UTF_8)
       {
           "REQUEST_METHOD" => "POST",
           "CONTENT_TYPE" => "application/json",
@@ -474,7 +473,7 @@ describe Rack::Sanitizer do
     end
 
     def sanitize_data(request_env = request_env())
-      @uri_input = "http://bar/foo+%2F%3A+bar+%D0%BB%D0%BE%D0%BB".force_encoding('UTF-8')
+      @uri_input = "http://bar/foo+%2F%3A+bar+%D0%BB%D0%BE%D0%BB".dup.force_encoding(Encoding::UTF_8)
       @response_env = @app.(request_env)
       sanitized_input = @response_env['rack.input'].read
 
@@ -507,7 +506,7 @@ describe Rack::Sanitizer do
 
     it "accepts a proc as a strategy" do
       truncate = -> (input) do
-        'replace'.force_encoding(Encoding::UTF_8)
+        'replace'.dup.force_encoding(Encoding::UTF_8)
       end
 
       @app = Rack::Sanitizer.new(-> env { env }, strategy: truncate)
