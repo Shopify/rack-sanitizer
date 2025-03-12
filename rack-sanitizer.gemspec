@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |gem|
   gem.name          = "rack-sanitizer"
-  gem.version       = '2.0.3'
+  gem.version       = '2.0.4'
   gem.authors       = ["Jean Boussier", "whitequark"]
   gem.license       = "MIT"
   gem.email         = ["jean.boussier@gmail.org"]
