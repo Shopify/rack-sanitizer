@@ -21,7 +21,6 @@ Gem::Specification.new do |gem|
 
   gem.add_dependency             "rack", '>= 1.0', '< 4.0'
 
-  gem.add_development_dependency "bacon"
-  gem.add_development_dependency "bacon-colored_output"
   gem.add_development_dependency "rake"
+  gem.add_development_dependency "ostruct"
 end
