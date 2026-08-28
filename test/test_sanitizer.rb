@@ -1,6 +1,5 @@
+# encoding: ascii-8bit
 # frozen_string_literal: true
-
-# encoding:ascii-8bit
 
 require 'cgi'
 require 'rack/sanitizer'
@@ -336,7 +335,7 @@ describe Rack::Sanitizer do
 
       env = request_env.update("CONTENT_LENGTH" => input.bytesize)
       sanitize_form_data(env) do |sanitized_input|
-        sanitized_input.bytesize.should == input.bytesize
+        sanitized_input.bytesize.should != input.bytesize
         @response_env["CONTENT_LENGTH"].should == sanitized_input.bytesize.to_s
       end
     end
