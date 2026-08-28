@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+# frozen_string_literal: true
 
 Gem::Specification.new do |gem|
   gem.name          = "rack-sanitizer"
@@ -12,15 +12,11 @@ Gem::Specification.new do |gem|
   gem.homepage      = "http://github.com/Shopify/rack-sanitizer"
 
   gem.files         = `git ls-files`.split($/)
-  gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.require_paths = ["lib"]
 
   gem.metadata["allowed_push_host"] = "https://rubygems.org/"
 
   gem.required_ruby_version = '>= 2.5'
 
-  gem.add_dependency             "rack", '>= 1.0', '< 4.0'
-
-  gem.add_development_dependency "rake"
-  gem.add_development_dependency "ostruct"
+  gem.add_dependency "rack", '>= 1.0', '< 4.0'
 end

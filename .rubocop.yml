@@ -1,0 +1,12 @@
+
+inherit_gem:
+  rubocop-shopify: rubocop.yml
+
+AllCops:
+  SuggestExtensions: false
+  TargetRubyVersion: 2.5
+  Exclude:
+    - bin/bacon
+
+Lint/Void:
+  Enabled: false

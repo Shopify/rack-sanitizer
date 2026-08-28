@@ -7,7 +7,7 @@ module Rack
   class Sanitizer
     # options[:sanitizable_content_types] Array
     # options[:additional_content_types] Array
-    def initialize(app, options={})
+    def initialize(app, options = {})
       @app = app
       @strategy = build_strategy(options)
       @sanitizable_content_types = options[:sanitizable_content_types]
@@ -19,23 +19,23 @@ module Rack
       begin
         @app.call(env)
       rescue SanitizedRackInput::FailedToReadBody
-        return [400, { "Content-Type" => "text/plain" }, ["Bad Request"]]
+        [400, { "Content-Type" => "text/plain" }, ["Bad Request"]]
       end
     end
 
     DEFAULT_STRATEGIES = {
       replace: lambda do |input|
-        input.
-          force_encoding(Encoding::ASCII_8BIT).
-          encode!(Encoding::UTF_8,
-                  invalid: :replace,
-                  undef:   :replace)
+        input
+          .force_encoding(Encoding::ASCII_8BIT)
+          .encode!(Encoding::UTF_8,
+            invalid: :replace,
+            undef:   :replace)
         input
       end,
       exception: lambda do |input|
-        input.
-          force_encoding(Encoding::ASCII_8BIT).
-          encode!(Encoding::UTF_8)
+        input
+          .force_encoding(Encoding::ASCII_8BIT)
+          .encode!(Encoding::UTF_8)
         input
       end
     }.freeze
@@ -157,8 +157,8 @@ module Rack
 
       def decode_string(input)
         unescape_unreserved(
-          sanitize_string(input).
-            force_encoding(Encoding::ASCII_8BIT))
+          sanitize_string(input)
+            .force_encoding(Encoding::ASCII_8BIT))
       end
 
       # RFC3986, 2.2 states that the characters from 'reserved' group must be

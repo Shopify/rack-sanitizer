@@ -1,0 +1,17 @@
+name: rack-sanitizer
+
+type: ruby
+nix: true
+
+up:
+  - ruby
+  - bundler
+
+commands:
+  test:
+    syntax:
+      argument: file
+      optional: args...
+    run: bundle exec rake spec
+  style:
+    run: bin/rubocop

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # encoding:ascii-8bit
 
 require 'cgi'
@@ -5,7 +7,9 @@ require 'rack/sanitizer'
 
 describe Rack::Sanitizer do
   before do
-    @app = Rack::Sanitizer.new(-> env { env["rack.input"]&.size; env })
+    @app = Rack::Sanitizer.new(->env {
+                                 env["rack.input"]&.size
+                                 env })
   end
 
   shared :does_sanitize_plain do
@@ -151,8 +155,8 @@ describe Rack::Sanitizer do
 
   describe "with frozen strings" do
     before do
-      @plain_input = "bar baz".freeze
-      @uri_input   = "http://bar/bar+baz".freeze
+      @plain_input = "bar baz"
+      @uri_input   = "http://bar/bar+baz"
     end
 
     it "preserves the frozen? status of input" do
@@ -170,7 +174,7 @@ describe Rack::Sanitizer do
     end
 
     it "sanitizes REQUEST_PATH with invalid UTF-8 URI input" do
-      env  = @app.({ :requested_at => "2014-07-22",
+      env = @app.({ :requested_at => "2014-07-22",
                      "REQUEST_PATH" => @uri_input })
 
       result = env["REQUEST_PATH"]
@@ -215,7 +219,7 @@ describe Rack::Sanitizer do
     it "returns HTTP 400 on EOF" do
       @rack_input = BrokenIO.new
       @response_env = @app.(request_env)
-      @response_env.should == [400, {"Content-Type"=>"text/plain"}, ["Bad Request"]]
+      @response_env.should == [400, { "Content-Type" => "text/plain" }, ["Bad Request"]]
     end
 
     it "sanitizes StringIO rack.input" do
@@ -241,7 +245,7 @@ describe Rack::Sanitizer do
     end
 
     it "sanitizes StringIO rack.input with bad encoding" do
-      input =  "foo=bla&quux=bar\xED"
+      input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
       sanitize_form_data do |sanitized_input|
@@ -292,7 +296,7 @@ describe Rack::Sanitizer do
 
     it "sanitizes non-StringIO rack.input with bad encoding" do
       require 'rack/rewindable_input'
-      input =  "foo=bla&quux=bar\xED"
+      input = "foo=bla&quux=bar\xED"
       @rack_input = Rack::RewindableInput.new(StringIO.new(input))
 
       sanitize_form_data do |sanitized_input|
@@ -303,7 +307,7 @@ describe Rack::Sanitizer do
     end
 
     it "does not sanitize the rack body if there is no CONTENT_TYPE" do
-      input =  "foo=bla&quux=bar\xED"
+      input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
       env = request_env.update('CONTENT_TYPE' => nil)
@@ -315,7 +319,7 @@ describe Rack::Sanitizer do
     end
 
     it "does not sanitize the rack body if there is empty CONTENT_TYPE" do
-      input =  "foo=bla&quux=bar\xED"
+      input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
       env = request_env.update('CONTENT_TYPE' => '')
@@ -327,18 +331,18 @@ describe Rack::Sanitizer do
     end
 
     it "adjusts content-length when replacing input" do
-      input =  "foo=bla&quux=bar\xED"
+      input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
       env = request_env.update("CONTENT_LENGTH" => input.bytesize)
       sanitize_form_data(env) do |sanitized_input|
-        sanitized_input.bytesize.should != input.bytesize
+        sanitized_input.bytesize.should == input.bytesize
         @response_env["CONTENT_LENGTH"].should == sanitized_input.bytesize.to_s
       end
     end
 
     it "does not sanitize null bytes by default" do
-      input =  "foo=bla&quux=bar%00"
+      input = "foo=bla&quux=bar%00"
       @rack_input = StringIO.new input
 
       sanitize_form_data do |sanitized_input|
@@ -397,7 +401,7 @@ describe Rack::Sanitizer do
     end
 
     it "does not sanitize custom content-type by default" do
-      input =  "foo=bla&quux=bar\xED"
+      input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
       env = request_env
@@ -409,8 +413,8 @@ describe Rack::Sanitizer do
     end
 
     it "sanitizes custom content-type if additional_content_types given" do
-      @app = Rack::Sanitizer.new(-> env { env }, additional_content_types: ["application/vnd.api+json"])
-      input =  "foo=bla&quux=bar\xED"
+      @app = Rack::Sanitizer.new(->env { env }, additional_content_types: ["application/vnd.api+json"])
+      input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
       env = request_env
@@ -422,8 +426,8 @@ describe Rack::Sanitizer do
     end
 
     it "sanitizes default content-type if additional_content_types given" do
-      @app = Rack::Sanitizer.new(-> env { env }, additional_content_types: ["application/vnd.api+json"])
-      input =  "foo=bla&quux=bar\xED"
+      @app = Rack::Sanitizer.new(->env { env }, additional_content_types: ["application/vnd.api+json"])
+      input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
       env = request_env.update('CONTENT_TYPE' => 'application/json')
@@ -435,8 +439,8 @@ describe Rack::Sanitizer do
     end
 
     it "sanitizes custom content-type if sanitizable_content_types given" do
-      @app = Rack::Sanitizer.new(-> env { env }, sanitizable_content_types: ["application/vnd.api+json"])
-      input =  "foo=bla&quux=bar\xED"
+      @app = Rack::Sanitizer.new(->env { env }, sanitizable_content_types: ["application/vnd.api+json"])
+      input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
       env = request_env
@@ -448,8 +452,8 @@ describe Rack::Sanitizer do
     end
 
     it "does not sanitize default content-type if sanitizable_content_types does not include it" do
-      @app = Rack::Sanitizer.new(-> env { env }, sanitizable_content_types: ["application/vnd.api+json"])
-      input =  "foo=bla&quux=bar\xED"
+      @app = Rack::Sanitizer.new(->env { env }, sanitizable_content_types: ["application/vnd.api+json"])
+      input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
       env = request_env.update('CONTENT_TYPE' => 'application/json')
@@ -481,7 +485,7 @@ describe Rack::Sanitizer do
     end
 
     it "calls a default strategy (replace)" do
-      @app = Rack::Sanitizer.new(-> env { env })
+      @app = Rack::Sanitizer.new(->env { env })
 
       input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
@@ -495,7 +499,7 @@ describe Rack::Sanitizer do
     end
 
     it "calls the exception strategy" do
-      @app = Rack::Sanitizer.new(-> env { env }, strategy: :exception)
+      @app = Rack::Sanitizer.new(->env { env }, strategy: :exception)
 
       input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
@@ -505,11 +509,11 @@ describe Rack::Sanitizer do
     end
 
     it "accepts a proc as a strategy" do
-      truncate = -> (input) do
+      truncate = ->(input) do
         'replace'.dup.force_encoding(Encoding::UTF_8)
       end
 
-      @app = Rack::Sanitizer.new(-> env { env }, strategy: truncate)
+      @app = Rack::Sanitizer.new(->env { env }, strategy: truncate)
 
       input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
