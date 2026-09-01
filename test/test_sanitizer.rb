@@ -417,6 +417,12 @@ describe Rack::Sanitizer do
       response_env['HTTP_COOKIE'].should == 'foo=bla; quux=bar%EF%BF%BD'
     end
 
+    it "preserves commas in http cookie values" do
+      @cookie = "foo=bar,baz; quux=qux"
+      response_env = @call_app.call(request_env)
+      response_env['HTTP_COOKIE'].should == @cookie
+    end
+
     it "does not change ok http cookie" do
       @cookie = "foo=bla; quux=bar"
       response_env = @call_app.call(request_env)
