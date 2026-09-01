@@ -2,28 +2,69 @@
 # frozen_string_literal: true
 
 require 'cgi'
+require 'rack/lint'
+require 'rack/mock'
 require 'rack/sanitizer'
 
 describe Rack::Sanitizer do
+  class ResponseBody < String
+    attr_reader :env
+
+    def initialize(env)
+      super('')
+      @env = env
+    end
+  end
+
   before do
-    @app = Rack::Sanitizer.new(->env {
-                                 env["rack.input"]&.size
-                                 env })
+    @build_app = ->(options = {}) do
+      linted_app = Rack::Lint.new(->env { [200, {}, [ResponseBody.new(env)]] })
+      Rack::Sanitizer.new(->env { linted_app.(env) }, options)
+    end
+
+    @rack_env = ->(env) do
+      Rack::MockRequest.env_for('/').tap do |request_env|
+        request_env.delete('CONTENT_LENGTH')
+        request_env.merge!(env.reject { |_key, value| value.nil? })
+      end
+    end
+
+    @call_app = ->(env) do
+      response = @app.(@rack_env.call(env))
+      response_body = nil
+      response[2].each do |chunk|
+        response_body = chunk
+      end
+      response[2].close
+      response_body.env
+    end
+
+    @app = @build_app.call
+  end
+
+  it "conforms to Rack::Lint" do
+    app = Rack::Lint.new(Rack::Sanitizer.new(->(_env) { [200, {}, ["OK"]] }))
+    status, headers, body = app.(Rack::MockRequest.env_for('/'))
+
+    status.should == 200
+    headers.should == {}
+    body.each { |chunk| chunk.should == "OK" }
+    body.close
   end
 
   shared :does_sanitize_plain do
     it "sanitizes plaintext entity (HTTP_USER_AGENT)" do
-      env    = @app.({ "HTTP_USER_AGENT" => @plain_input })
+      env    = @call_app.call({ "HTTP_USER_AGENT" => @plain_input })
       result = env["HTTP_USER_AGENT"]
 
-      result.encoding.should == Encoding::UTF_8
+      result.encoding.should == Encoding::ASCII_8BIT
       result.should.be.valid_encoding
     end
   end
 
   shared :does_sanitize_uri do
     it "sanitizes URI-like entity (REQUEST_PATH)" do
-      env    = @app.({ "REQUEST_PATH" => @uri_input })
+      env    = @call_app.call({ "REQUEST_PATH" => @uri_input })
       result = env["REQUEST_PATH"]
 
       result.encoding.should == Encoding::US_ASCII
@@ -34,7 +75,7 @@ describe Rack::Sanitizer do
   describe "with invalid host input" do
     it "sanitizes host entity (SERVER_NAME)" do
       host   = "host\xD0".dup.force_encoding(Encoding::UTF_8)
-      env    = @app.({ "SERVER_NAME" => host })
+      env    = @call_app.call({ "SERVER_NAME" => host })
       result = env["SERVER_NAME"]
 
       result.encoding.should == Encoding::US_ASCII
@@ -80,18 +121,18 @@ describe Rack::Sanitizer do
 
   shared :identity_plain do
     it "does not change plaintext entity (HTTP_USER_AGENT)" do
-      env    = @app.({ "HTTP_USER_AGENT" => @plain_input })
+      env    = @call_app.call({ "HTTP_USER_AGENT" => @plain_input })
       result = env["HTTP_USER_AGENT"]
 
-      result.encoding.should == Encoding::UTF_8
+      result.encoding.should == (@plain_input.ascii_only? ? Encoding::UTF_8 : Encoding::ASCII_8BIT)
       result.should.be.valid_encoding
-      result.should == @plain_input
+      result.bytes.should == @plain_input.bytes
     end
   end
 
   shared :identity_uri do
     it "does not change URI-like entity (REQUEST_PATH)" do
-      env    = @app.({ "REQUEST_PATH" => @uri_input })
+      env    = @call_app.call({ "REQUEST_PATH" => @uri_input })
       result = env["REQUEST_PATH"]
 
       result.encoding.should == Encoding::US_ASCII
@@ -125,7 +166,7 @@ describe Rack::Sanitizer do
     end
 
     it "does not change URI-like entity (REQUEST_PATH)" do
-      env    = @app.({ "REQUEST_PATH" => @uri_input })
+      env    = @call_app.call({ "REQUEST_PATH" => @uri_input })
       result = env["REQUEST_PATH"]
 
       result.encoding.should == Encoding::US_ASCII
@@ -159,8 +200,8 @@ describe Rack::Sanitizer do
     end
 
     it "preserves the frozen? status of input" do
-      env  = @app.({ "HTTP_USER_AGENT" => @plain_input,
-                     "REQUEST_PATH" => @uri_input })
+      env  = @call_app.call({ "HTTP_USER_AGENT" => @plain_input,
+                              "REQUEST_PATH" => @uri_input })
 
       env["HTTP_USER_AGENT"].should.be.frozen
       env["REQUEST_PATH"].should.be.frozen
@@ -173,8 +214,8 @@ describe Rack::Sanitizer do
     end
 
     it "sanitizes REQUEST_PATH with invalid UTF-8 URI input" do
-      env = @app.({ :requested_at => "2014-07-22",
-                     "REQUEST_PATH" => @uri_input })
+      env = @call_app.call({ "requested_at" => "2014-07-22",
+                             "REQUEST_PATH" => @uri_input })
 
       result = env["REQUEST_PATH"]
 
@@ -196,17 +237,15 @@ describe Rack::Sanitizer do
 
     def sanitize_form_data(request_env = request_env())
       @uri_input = "http://bar/foo+%2F%3A+bar+%D0%BB%D0%BE%D0%BB".dup.force_encoding(Encoding::UTF_8)
-      @response_env = @app.(request_env)
+      @response_env = @call_app.call(request_env)
       sanitized_input = @response_env['rack.input'].read
 
       yield sanitized_input if block_given?
 
-      @response_env['rack.input'].rewind
       behaves_like :does_sanitize_plain
       behaves_like :does_sanitize_uri
       behaves_like :identity_plain
       behaves_like :identity_uri
-      @response_env['rack.input'].close
     end
 
     class BrokenIO < StringIO
@@ -216,9 +255,18 @@ describe Rack::Sanitizer do
     end
 
     it "returns HTTP 400 on EOF" do
-      @rack_input = BrokenIO.new
-      @response_env = @app.(request_env)
-      @response_env.should == [400, { "Content-Type" => "text/plain" }, ["Bad Request"]]
+      @rack_input = BrokenIO.new("".b)
+      app = Rack::Lint.new(Rack::Sanitizer.new(->env {
+        env['rack.input'].read
+        [200, {}, ["OK"]]
+      }))
+      env = @rack_env.call(request_env.merge("HTTP_USER_AGENT" => "foo"))
+      status, headers, body = app.(env)
+      response_body = []
+      body.each { |chunk| response_body << chunk }
+      body.close
+
+      [status, headers, response_body].should == [400, { "content-type" => "text/plain" }, ["Bad Request"]]
     end
 
     it "sanitizes StringIO rack.input" do
@@ -333,7 +381,7 @@ describe Rack::Sanitizer do
       input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
-      env = request_env.update("CONTENT_LENGTH" => input.bytesize)
+      env = request_env.update("CONTENT_LENGTH" => input.bytesize.to_s)
       sanitize_form_data(env) do |sanitized_input|
         sanitized_input.bytesize.should != input.bytesize
         @response_env["CONTENT_LENGTH"].should == sanitized_input.bytesize.to_s
@@ -364,18 +412,18 @@ describe Rack::Sanitizer do
 
     it "sanitizes bad http cookie" do
       @cookie = "foo=bla; quux=bar\xED"
-      response_env = @app.(request_env)
+      response_env = @call_app.call(request_env)
       response_env['HTTP_COOKIE'].should != @cookie
       response_env['HTTP_COOKIE'].should == 'foo=bla; quux=bar%EF%BF%BD'
     end
 
     it "does not change ok http cookie" do
       @cookie = "foo=bla; quux=bar"
-      response_env = @app.(request_env)
+      response_env = @call_app.call(request_env)
       response_env['HTTP_COOKIE'].should == @cookie
 
       @cookie = "foo=b%3bla; quux=b%20a%20r"
-      response_env = @app.(request_env)
+      response_env = @call_app.call(request_env)
       response_env['HTTP_COOKIE'].should == @cookie
     end
   end
@@ -393,7 +441,7 @@ describe Rack::Sanitizer do
 
     def sanitize_data(request_env = request_env())
       @uri_input = "http://bar/foo+%2F%3A+bar+%D0%BB%D0%BE%D0%BB".dup.force_encoding(Encoding::UTF_8)
-      @response_env = @app.(request_env)
+      @response_env = @call_app.call(request_env)
       sanitized_input = @response_env['rack.input'].read
 
       yield sanitized_input if block_given?
@@ -412,46 +460,46 @@ describe Rack::Sanitizer do
     end
 
     it "sanitizes custom content-type if additional_content_types given" do
-      @app = Rack::Sanitizer.new(->env { env }, additional_content_types: ["application/vnd.api+json"])
+      @app = @build_app.call(additional_content_types: ["application/vnd.api+json"])
       input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
       env = request_env
       sanitize_data(env) do |sanitized_input|
-        sanitized_input.encoding.should == Encoding::UTF_8
+        sanitized_input.encoding.should == Encoding::ASCII_8BIT
         sanitized_input.should.be.valid_encoding
         sanitized_input.should != input
       end
     end
 
     it "sanitizes default content-type if additional_content_types given" do
-      @app = Rack::Sanitizer.new(->env { env }, additional_content_types: ["application/vnd.api+json"])
+      @app = @build_app.call(additional_content_types: ["application/vnd.api+json"])
       input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
       env = request_env.update('CONTENT_TYPE' => 'application/json')
       sanitize_data(env) do |sanitized_input|
-        sanitized_input.encoding.should == Encoding::UTF_8
+        sanitized_input.encoding.should == Encoding::ASCII_8BIT
         sanitized_input.should.be.valid_encoding
         sanitized_input.should != input
       end
     end
 
     it "sanitizes custom content-type if sanitizable_content_types given" do
-      @app = Rack::Sanitizer.new(->env { env }, sanitizable_content_types: ["application/vnd.api+json"])
+      @app = @build_app.call(sanitizable_content_types: ["application/vnd.api+json"])
       input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
       env = request_env
       sanitize_data(env) do |sanitized_input|
-        sanitized_input.encoding.should == Encoding::UTF_8
+        sanitized_input.encoding.should == Encoding::ASCII_8BIT
         sanitized_input.should.be.valid_encoding
         sanitized_input.should != input
       end
     end
 
     it "does not sanitize default content-type if sanitizable_content_types does not include it" do
-      @app = Rack::Sanitizer.new(->env { env }, sanitizable_content_types: ["application/vnd.api+json"])
+      @app = @build_app.call(sanitizable_content_types: ["application/vnd.api+json"])
       input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
@@ -477,28 +525,28 @@ describe Rack::Sanitizer do
 
     def sanitize_data(request_env = request_env())
       @uri_input = "http://bar/foo+%2F%3A+bar+%D0%BB%D0%BE%D0%BB".dup.force_encoding(Encoding::UTF_8)
-      @response_env = @app.(request_env)
+      @response_env = @call_app.call(request_env)
       sanitized_input = @response_env['rack.input'].read
 
       yield sanitized_input if block_given?
     end
 
     it "calls a default strategy (replace)" do
-      @app = Rack::Sanitizer.new(->env { env })
+      @app = @build_app.call
 
       input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
 
       env = request_env
       sanitize_data(env) do |sanitized_input|
-        sanitized_input.encoding.should == Encoding::UTF_8
+        sanitized_input.encoding.should == Encoding::ASCII_8BIT
         sanitized_input.should.be.valid_encoding
         sanitized_input.should != input
       end
     end
 
     it "calls the exception strategy" do
-      @app = Rack::Sanitizer.new(->env { env }, strategy: :exception)
+      @app = @build_app.call(strategy: :exception)
 
       input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
@@ -512,7 +560,7 @@ describe Rack::Sanitizer do
         'replace'.dup.force_encoding(Encoding::UTF_8)
       end
 
-      @app = Rack::Sanitizer.new(->env { env }, strategy: truncate)
+      @app = @build_app.call(strategy: truncate)
 
       input = "foo=bla&quux=bar\xED"
       @rack_input = StringIO.new input
