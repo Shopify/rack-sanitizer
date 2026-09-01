@@ -19,7 +19,7 @@ module Rack
       begin
         @app.call(env)
       rescue SanitizedRackInput::FailedToReadBody
-        [400, { "Content-Type" => "text/plain" }, ["Bad Request"]]
+        [400, { "content-type" => "text/plain" }, ["Bad Request"]]
       end
     end
 
@@ -73,13 +73,12 @@ module Rack
             env[key] = sanitize_uri_encoded_string(value)
           end
         elsif key.to_s.start_with?("HTTP_")
-          # Just sanitize the headers and leave them in UTF-8. There is
-          # no reason to have UTF-8 in headers, but if it's valid, let it be.
-          if value.frozen?
-            env[key] = sanitize_string(value.dup).freeze
-          else
-            env[key] = sanitize_string(value)
+          # Rack requires non-ASCII CGI values to use ASCII-8BIT encoding.
+          sanitized_value = sanitize_string(value.frozen? ? value.dup : value)
+          if sanitized_value.is_a?(String) && !sanitized_value.ascii_only?
+            sanitized_value = sanitized_value.b
           end
+          env[key] = value.frozen? ? sanitized_value.freeze : sanitized_value
         end
       end
     end

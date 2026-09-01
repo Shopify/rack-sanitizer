@@ -44,7 +44,7 @@ The generic sanitization algorithm is as follows:
       1. Force the encoding to ASCII8-BIT.
       2. Re-encode it as UTF-8, replacing invalid and undefined characters as U+FFFD.
 
-For fields with "raw data", the algorithm is applied once and the (UTF-8 encoded) result is left in the environment.
+For fields with "raw data", the algorithm is applied once. ASCII-only results remain UTF-8. Results with non-ASCII characters use ASCII-8BIT encoding to satisfy the Rack environment specification.
 
 For fields with "percent-encoded data", the algorithm is applied twice to catch both invalid characters appearing as-is and invalid characters appearing in the percent encoding. The percent encoded, ASCII-8BIT encoded result is left in the environment.
 
