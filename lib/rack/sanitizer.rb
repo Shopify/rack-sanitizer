@@ -73,12 +73,11 @@ module Rack
             env[key] = sanitize_uri_encoded_string(value)
           end
         elsif key.to_s.start_with?("HTTP_")
-          # Rack requires non-ASCII CGI values to use ASCII-8BIT encoding.
-          sanitized_value = sanitize_string(value.frozen? ? value.dup : value)
-          if sanitized_value.is_a?(String) && !sanitized_value.ascii_only?
-            sanitized_value = sanitized_value.b
+          if value.frozen?
+            env[key] = sanitize_string(value.dup).freeze
+          else
+            env[key] = sanitize_string(value)
           end
-          env[key] = value.frozen? ? sanitized_value.freeze : sanitized_value
         end
       end
     end
@@ -201,14 +200,12 @@ module Rack
 
           input.force_encoding(Encoding::UTF_8)
 
-          if input.valid_encoding?
-            input
-          else
-            @strategy.call(input)
-          end
-        else
-          input
+          input = @strategy.call(input) unless input.valid_encoding?
+          # Rack requires non-ASCII strings to use ASCII-8BIT encoding.
+          input = input.b if input.is_a?(String) && !input.ascii_only?
         end
+
+        input
       end
     end
 

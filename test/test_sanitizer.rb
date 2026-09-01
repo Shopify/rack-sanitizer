@@ -466,7 +466,7 @@ describe Rack::Sanitizer do
 
       env = request_env
       sanitize_data(env) do |sanitized_input|
-        sanitized_input.encoding.should == Encoding::UTF_8
+        sanitized_input.encoding.should == Encoding::ASCII_8BIT
         sanitized_input.should.be.valid_encoding
         sanitized_input.should != input
       end
@@ -479,7 +479,7 @@ describe Rack::Sanitizer do
 
       env = request_env.update('CONTENT_TYPE' => 'application/json')
       sanitize_data(env) do |sanitized_input|
-        sanitized_input.encoding.should == Encoding::UTF_8
+        sanitized_input.encoding.should == Encoding::ASCII_8BIT
         sanitized_input.should.be.valid_encoding
         sanitized_input.should != input
       end
@@ -492,7 +492,7 @@ describe Rack::Sanitizer do
 
       env = request_env
       sanitize_data(env) do |sanitized_input|
-        sanitized_input.encoding.should == Encoding::UTF_8
+        sanitized_input.encoding.should == Encoding::ASCII_8BIT
         sanitized_input.should.be.valid_encoding
         sanitized_input.should != input
       end
@@ -539,7 +539,7 @@ describe Rack::Sanitizer do
 
       env = request_env
       sanitize_data(env) do |sanitized_input|
-        sanitized_input.encoding.should == Encoding::UTF_8
+        sanitized_input.encoding.should == Encoding::ASCII_8BIT
         sanitized_input.should.be.valid_encoding
         sanitized_input.should != input
       end
