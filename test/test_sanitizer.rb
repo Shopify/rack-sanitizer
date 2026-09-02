@@ -555,6 +555,30 @@ describe Rack::Sanitizer do
       should.raise(EncodingError) { sanitize_data(env) }
     end
 
+    it "returns HTTP 400 before the application reads invalid rack.input" do
+      input = "{\"user_session\": {\"invalid\": \"\x80\"}}".b
+      @rack_input = StringIO.new(input)
+
+      sanitizer = Rack::Sanitizer.new(->(_env) { [200, {}, ["OK"]] }, strategy: :exception)
+      app = ->(env) do
+        begin
+          sanitizer.call(env)
+        rescue EncodingError
+          [400, {}, ["Bad Request"]]
+        end
+      end
+      app = Rack::Lint.new(app)
+
+      env = @rack_env.call(request_env.merge("HTTP_USER_AGENT" => "foo"))
+      env["CONTENT_LENGTH"] = input.bytesize.to_s
+      status, headers, body = app.(env)
+      response_body = []
+      body.each { |chunk| response_body << chunk }
+      body.close
+
+      [status, headers, response_body].should == [400, {}, ["Bad Request"]]
+    end
+
     it "accepts a proc as a strategy" do
       truncate = ->(input) do
         'replace'.dup.force_encoding(Encoding::UTF_8)
