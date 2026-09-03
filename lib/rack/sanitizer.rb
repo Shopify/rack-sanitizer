@@ -9,7 +9,9 @@ module Rack
     # options[:additional_content_types] Array
     def initialize(app, options = {})
       @app = app
-      @strategy = build_strategy(options)
+      strategy = options.fetch(:strategy) { :replace }
+      @strategy = build_strategy(strategy)
+      @exception_strategy = strategy == :exception
       @sanitizable_content_types = options[:sanitizable_content_types]
       @sanitizable_content_types ||= SANITIZABLE_CONTENT_TYPES + (options[:additional_content_types] || [])
     end
@@ -17,6 +19,9 @@ module Rack
     def call(env)
       env = sanitize(env)
       begin
+        if @exception_strategy && env['rack.input'].is_a?(SanitizedRackInput)
+          env['rack.input'].ensure_sanitized
+        end
         @app.call(env)
       rescue SanitizedRackInput::FailedToReadBody
         [400, { "content-type" => "text/plain" }, ["Bad Request"]]
@@ -84,9 +89,7 @@ module Rack
 
     private
 
-    def build_strategy(options)
-      strategy = options.fetch(:strategy) { :replace }
-
+    def build_strategy(strategy)
       return strategy unless DEFAULT_STRATEGIES.key?(strategy)
 
       DEFAULT_STRATEGIES[strategy]
@@ -234,6 +237,10 @@ module Rack
 
       def each(&block)
         sanitized_io.each(&block)
+      end
+
+      def ensure_sanitized
+        sanitized_io
       end
 
       def rewind
