@@ -2,10 +2,10 @@
 
 Gem::Specification.new do |gem|
   gem.name          = "rack-sanitizer"
-  gem.version       = '2.0.4'
-  gem.authors       = ["Jean Boussier", "whitequark"]
+  gem.version       = '2.1.0'
+  gem.authors       = ["Shopify - Ruby and Rails Infratructure", "Jean Boussier", "whitequark"]
   gem.license       = "MIT"
-  gem.email         = ["jean.boussier@gmail.org"]
+  gem.email         = ["ruby-and-rails-infrastructure@shopify.com"]
   gem.description   = %{Rack::Sanitizer is a Rack middleware which cleans up } +
                       %{invalid UTF8 characters in request URI and headers.}
   gem.summary       = "It is a mordernized and optimized fork of rack-utf8_sanitizer"

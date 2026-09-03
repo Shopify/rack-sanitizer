@@ -1,3 +1,4 @@
+Copyright (c) 2026 Shopify Inc.
 Copyright (c) 2013 Peter Zotov
 
 MIT License
