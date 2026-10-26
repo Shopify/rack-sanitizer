@@ -2,6 +2,7 @@
 
 require "uri"
 require "stringio"
+require "set"
 
 module Rack
   class Sanitizer
@@ -46,7 +47,7 @@ module Rack
     }.freeze
 
     # https://github.com/rack/rack/blob/main/SPEC.rdoc
-    URI_FIELDS  = %w(
+    URI_FIELDS = Set.new(%w(
         SCRIPT_NAME
         REQUEST_PATH REQUEST_URI PATH_INFO
         QUERY_STRING
@@ -54,7 +55,7 @@ module Rack
         ORIGINAL_FULLPATH
         ORIGINAL_SCRIPT_NAME
         SERVER_NAME
-    ).freeze
+    )).freeze
 
     SANITIZABLE_CONTENT_TYPES = %w(
       text/plain
