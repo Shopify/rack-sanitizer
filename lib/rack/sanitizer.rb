@@ -78,7 +78,7 @@ module Rack
           else
             env[key] = sanitize_uri_encoded_string(value)
           end
-        elsif key.to_s.start_with?("HTTP_")
+        elsif key == "CONTENT_TYPE" || key.to_s.start_with?("HTTP_")
           if value.frozen?
             env[key] = sanitize_string(value.dup).freeze
           else

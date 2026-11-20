@@ -193,6 +193,27 @@ describe Rack::Sanitizer do
     end
   end
 
+  describe "with invalid CONTENT_TYPE" do
+    before do
+      @content_type = "application/x-www-form-urlencoded; charset=utf-8; x=\xFF\xFE"
+    end
+
+    it "sanitizes it like other headers" do
+      env    = @call_app.call({ "CONTENT_TYPE" => @content_type })
+      result = env["CONTENT_TYPE"]
+
+      result.should.be.valid_encoding
+      result.should != @content_type
+      result.should.start_with "application/x-www-form-urlencoded"
+    end
+
+    it "raises with the exception strategy" do
+      @app = @build_app.call(strategy: :exception)
+
+      should.raise(EncodingError) { @call_app.call({ "CONTENT_TYPE" => @content_type }) }
+    end
+  end
+
   describe "with frozen strings" do
     before do
       @plain_input = "bar baz"
